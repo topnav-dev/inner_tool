@@ -103,6 +103,7 @@ func Native_conv() string {
 }
 
 func main() {
+	version()
 	flag.Parse()
 	patterns := flag.Args()
 	fmt.Printf("Tail: %+q\n", patterns)

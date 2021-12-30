@@ -8,32 +8,42 @@
 #     UNAME := $(patsubst MINGW%,MSYS,$(UNAME))
 # endif
 
-MAIN_FILE=main.go
+# MAIN_FILE=main.go version.go
 
 EXECUTABLE=conv
 WINDOWS=$(EXECUTABLE)_windows_amd64.exe
 LINUX=$(EXECUTABLE)_linux_amd64
 DARWIN=$(EXECUTABLE)_darwin_amd64
-VERSION=$(shell git describe --tags --always --long --dirty)
+VERSION=$(shell git describe --tags --abbrev=0)
+COMMIT=$(shell git rev-parse --short HEAD)
+
+LDFLAGS=-ldflags="-w -s \
+-X 'main.versionString=${VERSION}' \
+-X 'main.commitString=${COMMIT}'"
 
 OBJECTS=$(WINDOWS) $(LINUX) $(DARWIN)
 
 $(WINDOWS):
-	env GOOS=windows GOARCH=amd64 go build -v -o $(WINDOWS) -ldflags="-s -w -X main.version=$(VERSION)" $(MAIN_FILE)
+	GOOS=windows GOARCH=amd64
+	@go build -v -o $(WINDOWS) $(LDFLAGS) .
 
 $(LINUX):
-	env GOOS=linux GOARCH=amd64 go build -v -o $(LINUX) -ldflags="-s -w -X main.version=$(VERSION)" $(MAIN_FILE)
+	GOOS=linux GOARCH=amd64
+	@go build -v -o $(LINUX) $(LDFLAGS) .
 
 $(DARWIN):
-	env GOOS=darwin GOARCH=amd64 go build -v -o $(DARWIN) -ldflags="-s -w -X main.version=$(VERSION)" $(MAIN_FILE)
+	GOOS=darwin GOARCH=amd64
+	@go build -v -o $(DARWIN) $(LDFLAGS) .
 
 build: $(OBJECTS) ## Build binaries
-	@echo version: $(VERSION)
+	@echo versionString: $(VERSION)
+	@echo commitString: $(COMMIT)
 
 run: build
 
 clean: ## Remove previous build
-	rm -f ../$(OBJECTS)
+	@go clean
+	rm -f $(OBJECTS)
 
 test: ## Run unit tests
 	./scripts/test_unit.sh
