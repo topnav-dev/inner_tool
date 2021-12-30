@@ -1,4 +1,4 @@
-#Linux、Cygwin、MSYS、Windows、FreeBSD、NetBSD、Solaris、Darwin、OpenBSD、AIX、HP-UX
+# Linux、Cygwin、MSYS、Windows、FreeBSD、NetBSD、Solaris、Darwin、OpenBSD、AIX、HP-UX
 # ifeq '$(findstring ;,$(PATH))' ';'
 #     UNAME = Windows
 # else
@@ -10,11 +10,11 @@
 
 # MAIN_FILE=main.go version.go
 
-EXECUTABLE=conv
+EXECUTABLE=cmd
 WINDOWS=$(EXECUTABLE)_windows_amd64.exe
 LINUX=$(EXECUTABLE)_linux_amd64
 DARWIN=$(EXECUTABLE)_darwin_amd64
-VERSION=$(shell git describe --tags --abbrev=0)
+VERSION=$(shell git describe --tags --dirty | sed 's/-g[a-z0-9]\{7\}//')
 COMMIT=$(shell git rev-parse --short HEAD)
 
 LDFLAGS=-ldflags="-w -s \
@@ -39,11 +39,16 @@ build: $(OBJECTS) ## Build binaries
 	@echo versionString: $(VERSION)
 	@echo commitString: $(COMMIT)
 
-run: build
+move:
+	mv $(OBJECTS) ../
+
+run: build move
 
 clean: ## Remove previous build
 	@go clean
-	rm -f $(OBJECTS)
+	rm -f ../$(DARWIN)
+	rm -f ../$(LINUX)
+	rm -f ../$(WINDOWS)
 
 test: ## Run unit tests
 	./scripts/test_unit.sh
