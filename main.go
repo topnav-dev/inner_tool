@@ -2,19 +2,18 @@
 package main
 
 import (
-	"bytes"
+	"conv/crud"
+	"conv/dos2unix"
+	"conv/style_format"
+	"conv/toUTF8"
+	"conv/version"
 	"fmt"
-	"github.com/gogs/chardet"
-	flag "github.com/spf13/pflag"
-	"io"
-	"io/ioutil"
-	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
+	"runtime"
 	"strings"
-	"time"
+
+	flag "github.com/spf13/pflag"
 )
 
 // https://learnku.com/articles/53004
@@ -35,22 +34,16 @@ var (
 // 定义命令行参数对应的变量
 // conv -t dos2unix -v true .c .h
 // conv -t all -v true .c .h
-var typeFlag = flag.StringP("type", "t", "dos2unix", "Execute type")
-var verboseFlag = flag.BoolP("verbose", "v", true, "verbose message")
-var root = getParentDirectory(pwd())
-var s = []string{"dos2unix", "dos2unix", "utf8", "Mike"}
+var typeFlag = flag.StringP("type", "t", "dos2unix", "toUTF8, dos2unix, all")
+var verboseFlag = flag.StringP("verbose", "v", "false", "verbose message")
 
-func getParentDirectory(dirctory string) string {
-	str := func(s string, pos, length int) string {
-		runes := []rune(s)
-		l := pos + length
-		if l > len(runes) {
-			l = len(runes)
-		}
-		return string(runes[pos:l])
-	}(dirctory, 0, strings.LastIndex(dirctory, "/"))
-	return str
-}
+// 定义命令行参数对应的变量
+// var cliName = flag.StringP("name", "n", "nick", "Input Your Name")
+// var cliAge = flag.IntP("age", "a", 22, "Input Your Age")
+// var cliGender = flag.StringP("gender", "g", "male", "Input Your Gender")
+// var cliOK = flag.BoolP("ok", "o", false, "Input Are You OK")
+// var cliDes = flag.StringP("des-detail", "d", "", "Input Description")
+// var cliOldFlag = flag.StringP("badflag", "b", "just for test", "Input badflag")
 
 func wordSepNormalizeFunc(f *flag.FlagSet, name string) flag.NormalizedName {
 	from := []string{"-", "_"}
@@ -65,7 +58,7 @@ func flag_init() {
 	// 设置标准化参数名称的函数
 	flag.CommandLine.SetNormalizeFunc(wordSepNormalizeFunc)
 	// 为 age 参数设置 NoOptDefVal
-	flag.Lookup("age").NoOptDefVal = "25"
+	// flag.Lookup("age").NoOptDefVal = "25"
 	// 把 badflag 参数标记为即将废弃的，请用户使用 des-detail 参数
 	flag.CommandLine.MarkDeprecated("badflag", "please use --des-detail instead")
 	// 把 badflag 参数的 shorthand 标记为即将废弃的，请用户使用 des-detail 的 shorthand 参数
@@ -74,6 +67,14 @@ func flag_init() {
 	flag.CommandLine.MarkHidden("badflag")
 	// 把用户传递的命令行参数解析为对应变量的值
 	flag.Parse()
+	// fmt.Println("name=", *cliName)
+	// fmt.Println("age=", *cliAge)
+	// fmt.Println("gender=", *cliGender)
+	// fmt.Println("ok=", *cliOK)
+	// fmt.Println("des=", *cliDes)
+	// fmt.Println("des=", *cliDes)
+	fmt.Println("verboseFlag=", *verboseFlag)
+	fmt.Println("type=", *typeFlag)
 }
 
 func contains(s []string, str string) bool {
@@ -85,35 +86,23 @@ func contains(s []string, str string) bool {
 	return false
 }
 
-func pwd() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return dir
-}
+func printVerbose() {
 
-func Native_conv() string {
-	cmd, err := exec.Command("/bin/sh", "/path/to/file.sh").Output()
-	if err != nil {
-		fmt.Printf("error %s", err)
-	}
-	output := string(cmd)
-	return output
 }
 
 func main() {
-	version()
-	flag.Parse()
+	fmt.Println(runtime.GOOS, "+", runtime.GOARCH)
+	version.Do()
+	flag_init()
 	patterns := flag.Args()
 	fmt.Printf("Tail: %+q\n", patterns)
-	fmt.Printf("verboseFlag=%t\n", *verboseFlag)
-	fmt.Println("name=", *typeFlag)
-	time.Sleep(5 * time.Second)
-
-	if len(patterns) == 0 {
+	if flag.NArg() == 0 {
 		fmt.Printf("Error: no file pattern have been given.\n\n")
 		flag.PrintDefaults()
+		os.Exit(1)
+	}
+	if !(*typeFlag == "toUTF8" || *typeFlag == "dos2unix" || *typeFlag == "all") {
+		fmt.Println("Error: *typeFlag=", *typeFlag)
 		os.Exit(1)
 	}
 
@@ -125,102 +114,24 @@ func main() {
 			os.Exit(1)
 		}
 	}
-
-	// add file to files
-	var files []string
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			fmt.Println(err)
-			return nil
-		}
-		for _, string := range patterns {
-			if !info.IsDir() && filepath.Ext(path) == string {
-				files = append(files, path)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
+	files := crud.Search(patterns)
 	for _, file := range files {
-		if *verboseFlag {
-			fmt.Printf("%s\n", file)
-		}
 		if *typeFlag == "dos2unix" {
-			dos2unix(file)
-		}
-		if *typeFlag == "all" {
-			buffer := make([]byte, 32<<10)
-			f, err := os.Open(filepath.Join(file))
-			if err != nil {
-				fmt.Println(err)
+			if *verboseFlag == "true" {
 			}
-			size, _ := io.ReadFull(f, buffer)
-			input := buffer[:size]
-
-			textDetector := chardet.NewTextDetector()
-			//result, err := textDetector.DetectBest(input)
-			//if err != nil {
-			//	fmt.Println(err)
-			//}
-			//if result.Charset != "UTF-8" {
-			//	fmt.Printf("Expected charset %s, actual %s\n", "UTF-8", result.Charset)
-			//}
-			result, err := textDetector.DetectAll(input)
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				fmt.Println(result)
-			}
-
+			content := crud.Read(file)
+			crud.Write(file, dos2unix.Do(content))
+		} else if *typeFlag == "toUTF8" {
+			content := crud.Read(file)
+			crud.Write(file, toUTF8.Do(content))
+		} else if *typeFlag == "Astyle" {
+			//content := crud.Read(file)
+			style_format.Do()
+		} else if *typeFlag == "all" {
+			content := crud.Read(file)
+			crud.Write(file, dos2unix.Do(content))
+			content = crud.Read(file)
+			crud.Write(file, toUTF8.Do(content))
 		}
 	}
-}
-
-var trailingWhitespace = regexp.MustCompile(`(?m:[\t ]+$)`)
-
-func dos2unix(path string) error {
-	// read file into memory
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		fmt.Printf(" error: %s\n", err.Error())
-		return nil
-	}
-
-	// do magic
-	original := content
-	content = tidy(content)
-
-	if bytes.Compare(content, original) != 0 {
-		stats, _ := os.Stat(path)
-		err := ioutil.WriteFile(path, content, stats.Mode())
-		if err != nil {
-			fmt.Printf(" error: %s\n", err.Error())
-		} else {
-			fmt.Printf(" fixed.\n")
-		}
-	}
-	return nil
-}
-
-func tidy(content []byte) []byte {
-	// turn Windows newlines into Unix newlines
-	content = bytes.Replace(content, []byte{'\r'}, []byte{}, -1)
-
-	// remove UTF BOMs
-	if len(content) >= 3 && bytes.Equal(content[0:3], []byte("\xEF\xBB\xBF")) {
-		content = content[3:]
-	}
-
-	// trim trailing whitespace in each line
-	content = trailingWhitespace.ReplaceAllLiteral(content, []byte{})
-
-	// trim leading and trailing file space
-	content = bytes.TrimSpace(content)
-
-	// and make sure the file ends with a newline character
-	content = append(content, '\n')
-
-	return content
 }

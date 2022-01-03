@@ -1,59 +1,114 @@
-# Linux、Cygwin、MSYS、Windows、FreeBSD、NetBSD、Solaris、Darwin、OpenBSD、AIX、HP-UX
-# ifeq '$(findstring ;,$(PATH))' ';'
-#     UNAME = Windows
-# else
-#     UNAME := $(shell uname 2>/dev/null || echo Unknown)
-#     UNAME := $(patsubst CYGWIN%,Cygwin,$(UNAME))
-#     UNAME := $(patsubst MSYS%,MSYS,$(UNAME))
-#     UNAME := $(patsubst MINGW%,MSYS,$(UNAME))
-# endif
+include .env
 
-# MAIN_FILE=main.go version.go
+PROJECTNAME=$(shell basename "$(PWD)")
 
-EXECUTABLE=cmd
+EXECUTABLE=$(PROJECTNAME)
 WINDOWS=$(EXECUTABLE)_windows_amd64.exe
 LINUX=$(EXECUTABLE)_linux_amd64
 DARWIN=$(EXECUTABLE)_darwin_amd64
+OBJECTS=$(WINDOWS) $(LINUX) $(DARWIN)
 VERSION=$(shell git describe --tags --dirty | sed 's/-g[a-z0-9]\{7\}//')
 COMMIT=$(shell git rev-parse --short HEAD)
+LDFLAGS=-ldflags="-w -X 'main.versionString=${VERSION}' -X 'main.commitString=${COMMIT}'"
 
-LDFLAGS=-ldflags="-w -s \
--X 'main.versionString=${VERSION}' \
--X 'main.commitString=${COMMIT}'"
-
-OBJECTS=$(WINDOWS) $(LINUX) $(DARWIN)
-
-$(WINDOWS):
-	GOOS=windows GOARCH=amd64
-	@go build -v -o $(WINDOWS) $(LDFLAGS) .
+$(WINDOWS): 
+	@CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -v -o $(WINDOWS) $(LDFLAGS) main.go
 
 $(LINUX):
-	GOOS=linux GOARCH=amd64
-	@go build -v -o $(LINUX) $(LDFLAGS) .
+	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(LINUX) $(LDFLAGS) main.go
 
 $(DARWIN):
-	GOOS=darwin GOARCH=amd64
-	@go build -v -o $(DARWIN) $(LDFLAGS) .
+	@CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -v -o $(DARWIN) $(LDFLAGS) main.go
 
-build: $(OBJECTS) ## Build binaries
-	@echo versionString: $(VERSION)
-	@echo commitString: $(COMMIT)
+# Go related variables.
+GOBASE=$(shell pwd)
+GOPATH="/Users/blakewu/go"
+GOBIN=$(GOBASE)
+GOFILES=$(wildcard *.go)
 
-move:
-	mv $(OBJECTS) ../
+# Redirect error output to a file, so we can show it in development mode.
+STDERR=stderr.txt
 
-run: build move
+# PID file will keep the process id of the server
+PID=.pid
 
-clean: ## Remove previous build
-	@go clean
-	rm -f ../$(DARWIN)
-	rm -f ../$(LINUX)
-	rm -f ../$(WINDOWS)
+# Make is verbose in Linux. Make it silent.
+MAKEFLAGS += --silent
 
-test: ## Run unit tests
-	./scripts/test_unit.sh
+## install: Install missing dependencies. Runs `go get` internally. e.g; make install get=github.com/foo/bar
+install: go-get
 
-help: ## Display available commands
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+## start: Start in development mode. Auto-starts when code changes.
+start:
+	bash -c "trap 'make stop' EXIT; $(MAKE) compile start-server watch run='make compile start-server'"
 
-.PHONY: run clean
+## stop: Stop development mode.
+stop: stop-server
+
+start-server: stop-server
+	@echo "  >  $(PROJECTNAME) is available at $(ADDR)"
+	@-$(GOBIN)/$(PROJECTNAME) 2>&1 & echo $$! > $(PID)
+	@cat $(PID) | sed "/^/s/^/  \>  PID: /"
+
+stop-server:
+	@-touch $(PID)
+	@-kill `cat $(PID)` 2> /dev/null || true
+	@-rm $(PID)
+
+## watch: Run given command when code changes. e.g; make watch run="echo 'hey'"
+watch:
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) yolo -i . -e vendor -e bin -c "$(run)" -a localhost:8088
+
+restart-server: stop-server start-server
+
+## compile: Compile the binary.
+compile:
+	@-touch $(STDERR)
+	@-rm $(STDERR)
+	@-$(MAKE) -s go-compile 2> $(STDERR)
+@cat $(STDERR) | sed -e '1s/.*/\nError:\n/'  | sed 's/make\[.*/ /' | sed "/^/s/^/     /" 1>&2
+
+## exec: Run given command, wrapped with custom GOPATH. e.g; make exec run="go test ./..."
+exec:
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) $(run)
+
+## clean: Clean build files. Runs `go clean` internally.
+clean:
+	@-$(MAKE) go-clean
+	@-rm $(WINDOWS) $(LINUX) $(DARWIN)
+
+go-compile: clean go-build
+
+go-build:
+	@echo "  >  Building binary..."
+	$(MAKE) $(WINDOWS)
+	@echo "  >  $(MAKE) $(WINDOWS)"
+	$(MAKE) $(LINUX)
+	@echo "  >  $(MAKE) $(LINUX)"
+	$(MAKE) $(DARWIN)
+	@echo "  >  $(MAKE) $(DARWIN)"
+	@echo "  >  Building binary end"
+
+go-generate:
+	@echo "  >  Generating dependency files..."
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go generate $(generate)
+
+go-get:
+	@echo "  >  Checking if there is any missing dependencies..."
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get $(get)
+
+go-install:
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go install $(GOFILES)
+
+go-clean:
+	@echo "  >  Cleaning build cache"
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go clean
+
+.PHONY: help
+all: help
+help: Makefile
+	@echo
+	@echo " Choose a command run in "$(PROJECTNAME)":"
+	@echo
+	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
+	@echo

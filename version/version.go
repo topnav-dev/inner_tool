@@ -1,4 +1,4 @@
-package main
+package version
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 var versionString string
 var commitString string
 
-func version() {
+func Do() {
 	fmt.Fprintf(os.Stdout, "versionString: %s\r\n", versionString)
 	fmt.Fprintf(os.Stdout, "commitString: %s\r\n", commitString)
 }

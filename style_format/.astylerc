@@ -1,0 +1,9 @@
+-s4 
+-c 
+-xe 
+-z2 
+--style=bsd 
+--align-pointer=name 
+--align-reference=name 
+--pad-header 
+--pad-oper 
