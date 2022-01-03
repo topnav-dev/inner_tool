@@ -6,11 +6,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var root = getParentDirectory()
 
-func Search(patterns []string) []string {
+func Search(patterns []string, exclude string) []string {
 	// add file to files
 	var files []string
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
@@ -20,7 +21,11 @@ func Search(patterns []string) []string {
 		}
 		for _, string := range patterns {
 			if !info.IsDir() && filepath.Ext(path) == string {
-				files = append(files, path)
+				if strings.Contains(path, exclude) {
+					//fmt.Println("Excluded", path)
+				} else {
+					files = append(files, path)
+				}
 			}
 		}
 		return nil
@@ -31,34 +36,34 @@ func Search(patterns []string) []string {
 	return files
 }
 
-func Read(path string) []byte{
+func Read(path string) []byte {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		fmt.Printf(" error: %s\n", err)
+		fmt.Printf("Error: %s\n", err)
 	}
 	return b
 }
 
-func Write(path string, content []byte) error{
+func Write(path string, content []byte) error {
 	// empty file
-	if content == nil{
+	if content == nil {
 		return nil
 	}
 	err := write(path, content)
 	// write error
-	if err != nil{
-		fmt.Printf("error: %s\n", err.Error())
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
 	}
 	return err
 }
 
-func write(path string, content []byte) error{
+func write(path string, content []byte) error {
 	stats, _ := os.Stat(path)
 	return ioutil.WriteFile(path, content, stats.Mode())
 }
 
 func getParentDirectory() string {
-	wd,err := os.Getwd()
+	wd, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}

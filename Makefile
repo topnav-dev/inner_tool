@@ -12,13 +12,13 @@ COMMIT=$(shell git rev-parse --short HEAD)
 LDFLAGS=-ldflags="-w -X 'main.versionString=${VERSION}' -X 'main.commitString=${COMMIT}'"
 
 $(WINDOWS): 
-	@CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -v -o $(WINDOWS) $(LDFLAGS) main.go
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -v -o $(WINDOWS) $(LDFLAGS) main.go
 
 $(LINUX):
-	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(LINUX) $(LDFLAGS) main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(LINUX) $(LDFLAGS) main.go
 
 $(DARWIN):
-	@CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -v -o $(DARWIN) $(LDFLAGS) main.go
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -v -o $(DARWIN) $(LDFLAGS) main.go
 
 # Go related variables.
 GOBASE=$(shell pwd)

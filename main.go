@@ -8,6 +8,7 @@ import (
 	"conv/toUTF8"
 	"conv/version"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -35,6 +36,7 @@ var (
 // conv -t dos2unix -v true .c .h
 // conv -t all -v true .c .h
 var typeFlag = flag.StringP("type", "t", "dos2unix", "toUTF8, dos2unix, all")
+var typeExclude = flag.StringP("exclude", "e", "CMSIS", "exclude file")
 var verboseFlag = flag.StringP("verbose", "v", "false", "verbose message")
 
 // 定义命令行参数对应的变量
@@ -54,7 +56,7 @@ func wordSepNormalizeFunc(f *flag.FlagSet, name string) flag.NormalizedName {
 	return flag.NormalizedName(name)
 }
 
-func flag_init() {
+func flagInit() {
 	// 设置标准化参数名称的函数
 	flag.CommandLine.SetNormalizeFunc(wordSepNormalizeFunc)
 	// 为 age 参数设置 NoOptDefVal
@@ -75,34 +77,22 @@ func flag_init() {
 	// fmt.Println("des=", *cliDes)
 	fmt.Println("verboseFlag=", *verboseFlag)
 	fmt.Println("type=", *typeFlag)
-}
-
-func contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-	return false
-}
-
-func printVerbose() {
-
+	fmt.Println("Exclude=", *typeExclude)
 }
 
 func main() {
-	fmt.Println(runtime.GOOS, "+", runtime.GOARCH)
+	fmt.Println("platform:" + runtime.GOOS + "+" + runtime.GOARCH)
 	version.Do()
-	flag_init()
+	flagInit()
 	patterns := flag.Args()
-	fmt.Printf("Tail: %+q\n", patterns)
+	fmt.Println("Tail:", patterns)
 	if flag.NArg() == 0 {
-		fmt.Printf("Error: no file pattern have been given.\n\n")
+		fmt.Println("Error: no file pattern have been given.")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	if !(*typeFlag == "toUTF8" || *typeFlag == "dos2unix" || *typeFlag == "all") {
-		fmt.Println("Error: *typeFlag=", *typeFlag)
+	if !(*typeFlag == "toUTF8" || *typeFlag == "dos2unix" || *typeFlag == "all" || *typeFlag == "Astyle") {
+		log.Fatal("Error: *typeFlag=", *typeFlag)
 		os.Exit(1)
 	}
 
@@ -110,11 +100,11 @@ func main() {
 	for _, pattern := range patterns {
 		_, err := filepath.Match(pattern, "dummy")
 		if err != nil {
-			fmt.Printf("Error: file pattern '%s' is invalid.\n", pattern)
+			log.Fatalf("Error: file pattern '%s' is invalid.\n", pattern)
 			os.Exit(1)
 		}
 	}
-	files := crud.Search(patterns)
+	files := crud.Search(patterns, *typeExclude)
 	for _, file := range files {
 		if *typeFlag == "dos2unix" {
 			if *verboseFlag == "true" {
@@ -126,7 +116,7 @@ func main() {
 			crud.Write(file, toUTF8.Do(content))
 		} else if *typeFlag == "Astyle" {
 			//content := crud.Read(file)
-			style_format.Do()
+			style_format.Do(file)
 		} else if *typeFlag == "all" {
 			content := crud.Read(file)
 			crud.Write(file, dos2unix.Do(content))
@@ -135,3 +125,11 @@ func main() {
 		}
 	}
 }
+
+//func main() {
+//	fmt.Println(runtime.GOOS, "+", runtime.GOARCH)
+//	version.Do()
+//	flagInit()
+//	patterns := flag.Args()
+//	fmt.Println("Tail:", patterns)
+//}
