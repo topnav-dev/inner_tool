@@ -6,7 +6,6 @@ import (
 	"conv/dos2unix"
 	"conv/style_format"
 	"conv/toUTF8"
-	"conv/version"
 	"fmt"
 	"log"
 	"os"
@@ -82,7 +81,7 @@ func flagInit() {
 
 func main() {
 	fmt.Println("platform:" + runtime.GOOS + "+" + runtime.GOARCH)
-	version.Do()
+	verion_init()
 	flagInit()
 	patterns := flag.Args()
 	fmt.Println("Tail:", patterns)
@@ -126,10 +125,10 @@ func main() {
 	}
 }
 
-//func main() {
-//	fmt.Println(runtime.GOOS, "+", runtime.GOARCH)
-//	version.Do()
-//	flagInit()
-//	patterns := flag.Args()
-//	fmt.Println("Tail:", patterns)
-//}
+var version string
+var commit string
+
+func verion_init() {
+	fmt.Fprintf(os.Stdout, "versionString: %s\r\n", version)
+	fmt.Fprintf(os.Stdout, "commitString: %s\r\n", commit)
+}

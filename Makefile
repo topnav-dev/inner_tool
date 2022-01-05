@@ -1,5 +1,8 @@
 include .env
 
+# Cockroach build rules.
+GO ?= go
+
 PROJECTNAME=$(shell basename "$(PWD)")
 
 EXECUTABLE=$(PROJECTNAME)
@@ -7,18 +10,23 @@ WINDOWS=$(EXECUTABLE)_windows_amd64.exe
 LINUX=$(EXECUTABLE)_linux_amd64
 DARWIN=$(EXECUTABLE)_darwin_amd64
 OBJECTS=$(WINDOWS) $(LINUX) $(DARWIN)
-VERSION=$(shell git describe --tags --dirty | sed 's/-g[a-z0-9]\{7\}//')
+VERSION=$(shell git describe --tags $(git rev-list --tags --max-count=1))
 COMMIT=$(shell git rev-parse --short HEAD)
-LDFLAGS=-ldflags="-w -X 'main.versionString=${VERSION}' -X 'main.commitString=${COMMIT}'"
+LDFLAGS=-ldflags="-X 'main.version=${VERSION}' -X 'main.commit=${COMMIT}'"
+
+echo:
+	echo "$(LDFLAGS)"
 
 $(WINDOWS): 
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -v -o $(WINDOWS) $(LDFLAGS) main.go
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build -v -o $(WINDOWS) main.go
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(WINDOWS) main.go
 
 $(LINUX):
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(LINUX) $(LDFLAGS) main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -v -o $(LINUX) main.go
 
 $(DARWIN):
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -v -o $(DARWIN) $(LDFLAGS) main.go
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build -v -o $(DARWIN) main.go
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(DARWIN) main.go
 
 # Go related variables.
 GOBASE=$(shell pwd)
@@ -91,18 +99,18 @@ go-build:
 
 go-generate:
 	@echo "  >  Generating dependency files..."
-	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go generate $(generate)
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) $(GO) generate $(generate)
 
 go-get:
 	@echo "  >  Checking if there is any missing dependencies..."
-	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get $(get)
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) $(GO) get .
 
 go-install:
-	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go install $(GOFILES)
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) $(GO) install $(GOFILES)
 
 go-clean:
 	@echo "  >  Cleaning build cache"
-	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go clean
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) $(GO) clean
 
 .PHONY: help
 all: help
