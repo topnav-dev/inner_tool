@@ -13,6 +13,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/joho/godotenv"
+
 	flag "github.com/spf13/pflag"
 )
 
@@ -34,7 +36,7 @@ var (
 // 定义命令行参数对应的变量
 // conv -t dos2unix -v true .c .h
 // conv -t all -v true .c .h
-var typeFlag = flag.StringP("type", "t", "dos2unix", "toUTF8, dos2unix, all")
+var typeFlag = flag.StringP("type", "t", "all", "toUTF8, dos2unix, all, Astyle")
 var typeExclude = flag.StringP("exclude", "e", "CMSIS", "exclude file")
 var verboseFlag = flag.StringP("verbose", "v", "false", "verbose message")
 
@@ -81,10 +83,12 @@ func flagInit() {
 
 func main() {
 	fmt.Println("platform:" + runtime.GOOS + "+" + runtime.GOARCH)
-	verion_init()
+	verionInit()
 	flagInit()
 	patterns := flag.Args()
 	fmt.Println("Tail:", patterns)
+	fmt.Printf("ASTYLE_CMD_PATH=%s,ASTYLE_ARG_PATH=%s\n",
+		os.Getenv("ASTYLE_CMD_PATH"), os.Getenv("ASTYLE_ARG_PATH"))
 	if flag.NArg() == 0 {
 		fmt.Println("Error: no file pattern have been given.")
 		flag.PrintDefaults()
@@ -117,10 +121,12 @@ func main() {
 			//content := crud.Read(file)
 			style_format.Do(file)
 		} else if *typeFlag == "all" {
-			content := crud.Read(file)
+			var content []byte
+			content = crud.Read(file)
 			crud.Write(file, dos2unix.Do(content))
 			content = crud.Read(file)
 			crud.Write(file, toUTF8.Do(content))
+			style_format.Do(file)
 		}
 	}
 }
@@ -128,7 +134,11 @@ func main() {
 var version string
 var commit string
 
-func verion_init() {
+func verionInit() {
 	fmt.Fprintf(os.Stdout, "versionString: %s\r\n", version)
 	fmt.Fprintf(os.Stdout, "commitString: %s\r\n", commit)
+}
+
+func init() {
+	godotenv.Load()
 }

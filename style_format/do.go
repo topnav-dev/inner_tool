@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"os/exec"
@@ -14,22 +15,20 @@ import (
 	"strings"
 )
 
-var astyleCmdPath = "./style_format/AStyle"
-var astyleArgPath = "./style_format/.astylerc"
-
-func Do(path string) (res string, err error) {
-	argString := shellArg()
+func Do(filePath string) (res string, err error) {
+	var astyleCmdPath = os.Getenv("ASTYLE_CMD_PATH")
+	var astyleArgPath = os.Getenv("ASTYLE_ARG_PATH")
+	argString := shellArg(astyleArgPath)
 	if isEmpty(argString...) {
 		fmt.Println("Error: astyleArgPath=", astyleArgPath)
 	}
-	return shell(argString, path)
+	return shell(astyleCmdPath, argString, filePath)
 }
 
 // 执行shell命令
-func shell(argString []string, path string) (res string, err error) {
-	var execCmd *exec.Cmd
-	argString = append(argString, path)
-	execCmd = exec.Command(astyleCmdPath, argString...)
+func shell(astyleCmdPath string, argString []string, filePath string) (res string, err error) {
+	argString = append(argString, filePath)
+	execCmd := exec.Command(astyleCmdPath, argString...)
 	var (
 		stdout bytes.Buffer
 		stderr bytes.Buffer
@@ -43,11 +42,10 @@ func shell(argString []string, path string) (res string, err error) {
 	return stdout.String(), err
 }
 
-func shellArg() []string {
+func shellArg(astyleArgPath string) []string {
 	file, err := os.Open(astyleArgPath)
 	if err != nil {
-		log.Fatalf("failed to open")
-
+		log.Fatal("failed to open", astyleArgPath)
 	}
 	// The bufio.NewScanner() function is called in which the
 	// object os.File passed as its parameter and this returns a
@@ -87,4 +85,8 @@ func isExist(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+func init() {
+	godotenv.Load()
 }

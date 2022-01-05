@@ -1,21 +1,16 @@
 include .env
 
-# Cockroach build rules.
-GO ?= go
-
 PROJECTNAME=$(shell basename "$(PWD)")
-
-EXECUTABLE=$(PROJECTNAME)
-WINDOWS=$(EXECUTABLE)_windows_amd64.exe
-LINUX=$(EXECUTABLE)_linux_amd64
-DARWIN=$(EXECUTABLE)_darwin_amd64
+WINDOWS=$(PROJECTNAME)_windows_amd64.exe
+LINUX=$(PROJECTNAME)_linux_amd64
+DARWIN=$(PROJECTNAME)_darwin_amd64
 OBJECTS=$(WINDOWS) $(LINUX) $(DARWIN)
 VERSION=$(shell git describe --tags $(git rev-list --tags --max-count=1))
 COMMIT=$(shell git rev-parse --short HEAD)
 LDFLAGS=-ldflags="-X 'main.version=${VERSION}' -X 'main.commit=${COMMIT}'"
 
 echo:
-	echo "$(LDFLAGS)"
+	echo $(GOPATH)
 
 $(WINDOWS): 
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build -v -o $(WINDOWS) main.go
@@ -28,11 +23,17 @@ $(DARWIN):
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build -v -o $(DARWIN) main.go
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(DARWIN) main.go
 
+# Go build rules.
+GO ?= go
 # Go related variables.
 GOBASE=$(shell pwd)
-GOPATH="/Users/blakewu/go"
+# GOPATH="/Users/blakewu/go"
 GOBIN=$(GOBASE)
 GOFILES=$(wildcard *.go)
+ifndef $(GOPATH)
+	GOPATH=$(shell go env GOPATH)
+	export GOPATH
+endif
 
 # Redirect error output to a file, so we can show it in development mode.
 STDERR=stderr.txt

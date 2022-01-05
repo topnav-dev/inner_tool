@@ -10,7 +10,4 @@
 --pad-header
 --pad-oper
 --pad-comma
---break-blocks
 --indent-preproc-block
---ignore-exclude-errors-x
---exclude=CMSIS

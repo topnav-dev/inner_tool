@@ -70,7 +70,3 @@ func getParentDirectory() string {
 	parent := filepath.Dir(wd)
 	return parent
 }
-
-func init() {
-
-}
