@@ -9,10 +9,10 @@ import (
 	"strings"
 )
 
-var root = getParentDirectory()
-
 func Search(patterns []string, exclude string) []string {
 	// add file to files
+	var root = getWorkingDirPath()
+	fmt.Println("Search path:", root)
 	var files []string
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -62,11 +62,35 @@ func write(path string, content []byte) error {
 	return ioutil.WriteFile(path, content, stats.Mode())
 }
 
-func getParentDirectory() string {
-	wd, err := os.Getwd()
+func getParentDirectory(wd string) string {
+	parent := filepath.Dir(wd)
+	return parent
+}
+
+// BaseOn exe
+func getExePath() string {
+	ex, err := os.Executable()
 	if err != nil {
 		panic(err)
 	}
-	parent := filepath.Dir(wd)
-	return parent
+	exePath := filepath.Dir(ex)
+	return exePath
+}
+
+// Base on exe
+func getAbsPath() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		panic(err)
+	}
+	return dir
+}
+
+// Base on command line path
+func getWorkingDirPath() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	return dir
 }
