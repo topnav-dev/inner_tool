@@ -6,6 +6,7 @@ import (
 	"conv/dos2unix"
 	"conv/style_format"
 	"conv/toUTF8"
+	"conv/utils"
 	"fmt"
 	"log"
 	"os"
@@ -88,7 +89,7 @@ func main() {
 	patterns := flag.Args()
 	fmt.Println("Tail:", patterns)
 	fmt.Printf("ASTYLE_CMD_PATH=%s,ASTYLE_ARG_PATH=%s\n",
-		os.Getenv("ASTYLE_CMD_PATH"), os.Getenv("ASTYLE_ARG_PATH"))
+		utils.ViperEnvVariable("ASTYLE_CMD_PATH"), utils.ViperEnvVariable("ASTYLE_ARG_PATH"))
 	if flag.NArg() == 0 {
 		fmt.Println("Error: no file pattern have been given.")
 		flag.PrintDefaults()

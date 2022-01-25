@@ -6,6 +6,7 @@ package style_format
 import (
 	"bufio"
 	"bytes"
+	"conv/utils"
 	"fmt"
 	"github.com/joho/godotenv"
 	"log"
@@ -16,8 +17,8 @@ import (
 )
 
 func Do(filePath string) (res string, err error) {
-	var astyleCmdPath = os.Getenv("ASTYLE_CMD_PATH")
-	var astyleArgPath = os.Getenv("ASTYLE_ARG_PATH")
+	var astyleCmdPath = utils.ViperEnvVariable("ASTYLE_CMD_PATH")
+	var astyleArgPath = utils.ViperEnvVariable("ASTYLE_ARG_PATH")
 	argString := shellArg(astyleArgPath)
 	if isEmpty(argString...) {
 		fmt.Println("Error: astyleArgPath=", astyleArgPath)
