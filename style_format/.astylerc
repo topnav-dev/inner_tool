@@ -11,3 +11,7 @@
 --pad-oper
 --pad-comma
 --indent-preproc-block
+--break-one-line-headers
+--delete-empty-lines
+--squeeze-lines=1
+--add-braces

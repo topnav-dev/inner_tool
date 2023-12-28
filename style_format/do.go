@@ -49,7 +49,7 @@ func shellArg(astyleArgPath string) []string {
 		log.Fatal("failed to open", astyleArgPath)
 	}
 	// The bufio.NewScanner() function is called in which the
-	// object os.File passed as its parameter and this returns a
+	// object os.File passed as its parameter and this returns an
 	// object bufio.Scanner which is further used on the
 	// bufio.Scanner.Split() method.
 	scanner := bufio.NewScanner(file)
