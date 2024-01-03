@@ -18,6 +18,7 @@ $(WINDOWS):
 
 $(LINUX):
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -v -o $(LINUX) main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(LINUX) main.go
 
 $(DARWIN):
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build -v -o $(DARWIN) main.go
