@@ -13,5 +13,7 @@
 --indent-preproc-block
 --break-one-line-headers
 --delete-empty-lines
---squeeze-lines=1
 --add-braces
+--squeeze-lines=1
+--unpad-brackets
+--squeeze-ws

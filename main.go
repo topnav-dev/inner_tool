@@ -37,7 +37,7 @@ var (
 // 定义命令行参数对应的变量
 // conv -t dos2unix -v true .c .h
 // conv -t all -v true .c .h
-var typeFlag = flag.StringP("type", "t", "all", "toUTF8, dos2unix, all, Astyle")
+var typeFlag = flag.StringP("type", "t", "all", "toUTF8, dos2unix, all, astyle")
 var typeExclude = flag.StringP("exclude", "e", "CMSIS", "exclude file")
 var verboseFlag = flag.StringP("verbose", "v", "false", "verbose message")
 
@@ -95,7 +95,7 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	if !(*typeFlag == "toUTF8" || *typeFlag == "dos2unix" || *typeFlag == "all" || *typeFlag == "Astyle") {
+	if !(*typeFlag == "toUTF8" || *typeFlag == "dos2unix" || *typeFlag == "all" || *typeFlag == "astyle") {
 		log.Fatal("Error: *typeFlag=", *typeFlag)
 		os.Exit(1)
 	}
@@ -118,7 +118,7 @@ func main() {
 		} else if *typeFlag == "toUTF8" {
 			content := crud.Read(file)
 			crud.Write(file, toUTF8.Do(content))
-		} else if *typeFlag == "Astyle" {
+		} else if *typeFlag == "astyle" {
 			//content := crud.Read(file)
 			style_format.Do(file)
 		} else if *typeFlag == "all" {
